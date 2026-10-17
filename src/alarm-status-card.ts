@@ -6,7 +6,7 @@ import type { CardConfig } from "./types";
 import "./editor";
 
 export const CARD_TAG = "alarm-status-card";
-export const CARD_VERSION = "0.1.2";
+export const CARD_VERSION = "0.1.3";
 
 const shield = (path: string, color: string) =>
   html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d=${path} style=${`fill: ${color}`}></path></svg>`;

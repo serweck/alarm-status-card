@@ -1,6 +1,6 @@
 {
   "name": "alarm-status-card",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Tarjeta Lovelace con el estado de la alarma y una ventana para cambiar el modo y lanzar el pánico con confirmación",
   "type": "module",
   "main": "dist/alarm-status-card.js",

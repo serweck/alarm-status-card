@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mdiShieldAlert, mdiShieldLock, mdiShieldMoon, mdiShieldOff, mdiShieldOffOutline, mdiShieldSync } from "@mdi/js";
+import { mdiShieldAlert, mdiShieldLock, mdiShieldOff, mdiShieldOffOutline, mdiShieldSync, mdiWeatherNight } from "@mdi/js";
 import { MODES, stateView, validateConfig } from "../src/state";
 
 describe("stateView", () => {
@@ -17,7 +17,8 @@ describe("stateView", () => {
 
   it("cada estado lleva su escudo", () => {
     expect(stateView("armed_away").icon).toBe(mdiShieldLock);
-    expect(stateView("armed_night").icon).toBe(mdiShieldMoon);
+    // la luna de antes (mdi:weather-night), que le gustaba al usuario
+    expect(stateView("armed_night").icon).toBe(mdiWeatherNight);
     expect(stateView("disarmed").icon).toBe(mdiShieldOff);
     expect(stateView("triggered").icon).toBe(mdiShieldAlert);
     expect(stateView("arming").icon).toBe(mdiShieldSync);

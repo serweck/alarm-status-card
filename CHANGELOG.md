@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 · 2026-10-17
+
+- Modo noche con la luna (mdi:weather-night), en la tarjeta y en el botón de la ventana.
+
 ## 0.1.2 · 2026-10-17
 
 - Anti doble toque: los botones de la ventana no responden el primer medio segundo tras abrirla, y «Activar» tampoco tras salir la confirmación del pánico (`armDelay`).

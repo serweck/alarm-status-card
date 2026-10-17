@@ -1,9 +1,10 @@
-import { mdiShieldAlert, mdiShieldLock, mdiShieldMoon, mdiShieldOff, mdiShieldOffOutline, mdiShieldSync } from "@mdi/js";
+import { mdiShieldAlert, mdiShieldLock, mdiShieldOff, mdiShieldOffOutline, mdiShieldSync, mdiWeatherNight } from "@mdi/js";
 import type { CardConfig, StateKey } from "./types";
 
 const VIEWS: Record<StateKey, { color: string; icon: string }> = {
   armed: { color: "#e53935", icon: mdiShieldLock },
-  night: { color: "#42a5f5", icon: mdiShieldMoon },
+  // la luna de antes (mdi:weather-night)
+  night: { color: "#42a5f5", icon: mdiWeatherNight },
   disarmed: { color: "#4caf50", icon: mdiShieldOff },
   triggered: { color: "#ff1744", icon: mdiShieldAlert },
   transition: { color: "#ffb300", icon: mdiShieldSync },
