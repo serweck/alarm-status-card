@@ -38,6 +38,15 @@ describe("tarjeta", () => {
     expect(text($(".mode.on"))).toBe("Desarmar");
   });
 
+  it("la ventana es un <dialog> nativo abierto con showModal, para quedar por encima de todas las tarjetas", async () => {
+    const show = vi.fn(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
+    (HTMLDialogElement.prototype as unknown as { showModal: () => void }).showModal = show;
+    const { $, click } = await mount();
+    await click(".tile");
+    expect($(".dialog")!.tagName).toBe("DIALOG");
+    expect(show).toHaveBeenCalledTimes(1);
+  });
+
   it("un modo llama al servicio del panel y cierra", async () => {
     const { $, $$, click, callService, card } = await mount();
     await click(".tile");

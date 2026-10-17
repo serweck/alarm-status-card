@@ -11,10 +11,10 @@ export const styles = css`
   .tile.blink svg { animation: as-blink 0.9s ease-in-out infinite; }
   @keyframes as-blink { 50% { opacity: 0.25; } }
   .hint { padding: 16px; color: var(--secondary-text-color); }
-  .backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 10; }
-  .dialog { position: fixed; z-index: 11; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(340px, calc(100vw - 32px));
-            box-sizing: border-box; padding: 18px; border-radius: 16px; background: var(--ha-card-background, #232323);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); color: var(--primary-text-color); }
+  .dialog { width: min(340px, calc(100vw - 32px)); box-sizing: border-box; padding: 0; border: 0; border-radius: 16px;
+            background: var(--ha-card-background, #232323); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); color: var(--primary-text-color); }
+  .dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+  .box { position: relative; padding: 18px; }
   .dialog h3 { margin: 0 0 4px; font-size: 17px; }
   .now { color: var(--secondary-text-color); font-size: 13px; margin-bottom: 14px; }
   .close { position: absolute; top: 10px; right: 10px; background: none; border: 0; color: var(--secondary-text-color); font-size: 18px; cursor: pointer; }

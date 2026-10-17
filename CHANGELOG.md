@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 · 2026-10-17
+
+- La ventana es un <dialog> nativo: queda por encima de todas las tarjetas (antes otras tarjetas podían taparla). Se cierra también con Esc.
+
 ## 0.1.0 · 2026-10-17
 
 - Primera versión: escudo con el estado, ventana con los tres modos y pánico en dos pasos.

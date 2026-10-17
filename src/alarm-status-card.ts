@@ -6,7 +6,7 @@ import type { CardConfig } from "./types";
 import "./editor";
 
 export const CARD_TAG = "alarm-status-card";
-export const CARD_VERSION = "0.1.0";
+export const CARD_VERSION = "0.1.1";
 
 const shield = (path: string, color: string) =>
   html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d=${path} style=${`fill: ${color}`}></path></svg>`;
@@ -33,6 +33,15 @@ export class AlarmStatusCard extends LitElement {
 
   private _show(): void { this._open = true; this._confirm = false; this._fired = false; }
   private _close(): void { this._open = false; this._confirm = false; }
+
+  /** La ventana es un <dialog> nativo abierto con showModal: va a la capa superior y ninguna tarjeta la tapa. */
+  protected updated(): void {
+    const d = this.shadowRoot?.querySelector("dialog");
+    if (d && !d.open) {
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", "");
+    }
+  }
 
   private _mode(service: string): void {
     this.hass?.callService("alarm_control_panel", service, { entity_id: this._config!.entity });
@@ -63,8 +72,9 @@ export class AlarmStatusCard extends LitElement {
 
   private _dialog(state: string, label: string) {
     const c = this._config!;
-    return html`<div class="backdrop" @click=${() => this._close()}></div>
-      <div class="dialog" role="dialog" aria-label=${c.name ?? "Alarma casa"}>
+    // tocar fuera (el propio <dialog>, que ocupa el fondo) o Esc cierran
+    return html`<dialog class="dialog" aria-label=${c.name ?? "Alarma casa"} @close=${() => this._close()}
+        @click=${(e: Event) => { if (e.target === e.currentTarget) this._close(); }}><div class="box">
         <button class="close" aria-label="Cerrar" @click=${() => this._close()}>✕</button>
         <h3>${c.name ?? "Alarma casa"}</h3>
         <div class="now">Ahora: ${label}</div>
@@ -80,7 +90,7 @@ export class AlarmStatusCard extends LitElement {
               <div class="btns"><button class="cancel" @click=${() => { this._confirm = false; }}>Cancelar</button>
                 <button class="go" @click=${() => this._panic()}>Activar</button></div></div>`
           : html`<button class="panic" @click=${() => { this._confirm = true; }}>⚠ Pánico</button>`) : nothing}
-      </div>`;
+      </div></dialog>`;
   }
 }
 
