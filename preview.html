@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alarm Status Card · vista previa</title>
+  <style>
+    body { margin: 0; padding: 20px; background: #111; color: #e1e1e1; font-family: Roboto, system-ui, sans-serif;
+           --primary-text-color: #e1e1e1; --secondary-text-color: #9b9b9b; --secondary-background-color: #2c2c2c; --primary-color: #4caf50; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .row > div { width: 200px; height: 140px; }
+    ha-card { display: block; background: #1c1c1c; border-radius: 12px; height: 100%; }
+    p { color: #9b9b9b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <p>Un estado por tarjeta. Toca una para abrir la ventana (las llamadas a servicios salen en la consola, no hacen nada).</p>
+  <div class="row" id="row"></div>
+  <script type="module">
+    import "./dist/alarm-status-card.js";
+    for (const state of ["disarmed", "armed_away", "armed_night", "arming", "triggered", "unavailable"]) {
+      const box = document.createElement("div");
+      const c = document.createElement("alarm-status-card");
+      c.setConfig({ type: "custom:alarm-status-card", entity: "alarm_control_panel.alarma_casa", panic: "script.alarma_panico" });
+      c.hass = { states: { "alarm_control_panel.alarma_casa": { state, attributes: {} } }, callService: (...a) => console.log("callService", ...a) };
+      box.appendChild(c); document.getElementById("row").appendChild(box);
+    }
+  </script>
+</body>
+</html>
