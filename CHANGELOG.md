@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 · 2026-10-17
+
+- Anti doble toque: los botones de la ventana no responden el primer medio segundo tras abrirla, y «Activar» tampoco tras salir la confirmación del pánico (`armDelay`).
+
 ## 0.1.1 · 2026-10-17
 
 - La ventana es un <dialog> nativo: queda por encima de todas las tarjetas (antes otras tarjetas podían taparla). Se cierra también con Esc.

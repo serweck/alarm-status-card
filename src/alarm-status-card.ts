@@ -6,7 +6,7 @@ import type { CardConfig } from "./types";
 import "./editor";
 
 export const CARD_TAG = "alarm-status-card";
-export const CARD_VERSION = "0.1.1";
+export const CARD_VERSION = "0.1.2";
 
 const shield = (path: string, color: string) =>
   html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d=${path} style=${`fill: ${color}`}></path></svg>`;
@@ -23,6 +23,11 @@ export class AlarmStatusCard extends LitElement {
   private _confirm = false;
   /** El pánico ya se ha lanzado en esta confirmación (un doble toque no lo repite). */
   private _fired = false;
+  /** Los botones de la ventana no responden este tiempo tras abrirla o tras salir la confirmación: el segundo toque
+   *  de un doble toque no cambia el modo ni activa el pánico. */
+  armDelay = 500;
+  private _openedAt = 0;
+  private _confirmAt = 0;
 
   static getConfigElement(): HTMLElement { return document.createElement(`${CARD_TAG}-editor`); }
   static getStubConfig(): Partial<CardConfig> { return { entity: "", panic: "" }; }
@@ -31,7 +36,13 @@ export class AlarmStatusCard extends LitElement {
   getCardSize(): number { return 3; }
   getGridOptions(): { columns: number; rows: number } { return { columns: 6, rows: 2 }; }
 
-  private _show(): void { this._open = true; this._confirm = false; this._fired = false; }
+  private _show(): void { this._open = true; this._confirm = false; this._fired = false; this._openedAt = Date.now(); }
+  private _settled(since: number): boolean { return Date.now() - since >= this.armDelay; }
+  private _askPanic(): void {
+    if (!this._settled(this._openedAt)) return;
+    this._confirm = true;
+    this._confirmAt = Date.now();
+  }
   private _close(): void { this._open = false; this._confirm = false; }
 
   /** La ventana es un <dialog> nativo abierto con showModal: va a la capa superior y ninguna tarjeta la tapa. */
@@ -44,12 +55,13 @@ export class AlarmStatusCard extends LitElement {
   }
 
   private _mode(service: string): void {
+    if (!this._settled(this._openedAt)) return;
     this.hass?.callService("alarm_control_panel", service, { entity_id: this._config!.entity });
     this._close();
   }
 
   private _panic(): void {
-    if (this._fired || !this._config?.panic) return;
+    if (this._fired || !this._config?.panic || !this._settled(this._confirmAt)) return;
     this._fired = true;
     this.hass?.callService("script", "turn_on", { entity_id: this._config.panic });
     this._close();
@@ -89,7 +101,7 @@ export class AlarmStatusCard extends LitElement {
           ? html`<div class="confirm"><p><b>¿Activar el pánico?</b> Saltarán las sirenas y los avisos de la alarma.</p>
               <div class="btns"><button class="cancel" @click=${() => { this._confirm = false; }}>Cancelar</button>
                 <button class="go" @click=${() => this._panic()}>Activar</button></div></div>`
-          : html`<button class="panic" @click=${() => { this._confirm = true; }}>⚠ Pánico</button>`) : nothing}
+          : html`<button class="panic" @click=${() => this._askPanic()}>⚠ Pánico</button>`) : nothing}
       </div></dialog>`;
   }
 }

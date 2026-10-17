@@ -4,10 +4,12 @@ import "../src/alarm-status-card";
 type El = HTMLElement & { setConfig(c: unknown): void; hass: unknown; updateComplete: Promise<boolean> };
 const CONFIG = { type: "custom:alarm-status-card", entity: "alarm_control_panel.alarma_casa", panic: "script.alarma_panico" };
 
-async function mount(state = "disarmed", config: Record<string, unknown> = CONFIG) {
+// Los botones de la ventana no responden el primer medio segundo (anti doble toque): los tests lo saltan con ARM_DELAY_MS = 0.
+async function mount(state = "disarmed", config: Record<string, unknown> = CONFIG, delay = 0) {
   const callService = vi.fn();
   const card = document.createElement("alarm-status-card") as El;
   card.setConfig(config);
+  (card as unknown as { armDelay: number }).armDelay = delay;
   card.hass = { states: state === "missing" ? {} : { "alarm_control_panel.alarma_casa": { state, attributes: {} } }, callService };
   document.body.appendChild(card);
   await card.updateComplete;
@@ -40,11 +42,14 @@ describe("tarjeta", () => {
 
   it("la ventana es un <dialog> nativo abierto con showModal, para quedar por encima de todas las tarjetas", async () => {
     const show = vi.fn(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
-    (HTMLDialogElement.prototype as unknown as { showModal: () => void }).showModal = show;
+    const proto = HTMLDialogElement.prototype as unknown as { showModal?: () => void };
+    const original = proto.showModal;
+    proto.showModal = show;
     const { $, click } = await mount();
     await click(".tile");
     expect($(".dialog")!.tagName).toBe("DIALOG");
     expect(show).toHaveBeenCalledTimes(1);
+    proto.showModal = original;
   });
 
   it("un modo llama al servicio del panel y cierra", async () => {
@@ -90,6 +95,33 @@ describe("tarjeta", () => {
     await click(".tile");
     expect($(".confirm")).toBeNull();
     expect(callService).not.toHaveBeenCalled();
+  });
+
+  it("un doble toque en la tarjeta no cambia el modo: los botones no responden el primer medio segundo", async () => {
+    vi.useFakeTimers();
+    const { $$, click, callService, card } = await mount("disarmed", CONFIG, 500);
+    await click(".tile");
+    $$(".mode")[2].click();           // el segundo toque del doble toque cae en «Desarmar»
+    await card.updateComplete;
+    expect(callService).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(600);
+    $$(".mode")[2].click();
+    expect(callService).toHaveBeenCalledWith("alarm_control_panel", "alarm_disarm", { entity_id: "alarm_control_panel.alarma_casa" });
+    vi.useRealTimers();
+  });
+
+  it("un doble toque en «Pánico» no lo activa: «Activar» no responde el primer medio segundo", async () => {
+    vi.useFakeTimers();
+    const { $, click, callService } = await mount("disarmed", CONFIG, 500);
+    await click(".tile");
+    vi.advanceTimersByTime(600);
+    await click(".panic");
+    $(".confirm .go")!.click();      // el segundo toque cae en «Activar»
+    expect(callService).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(600);
+    $(".confirm .go")!.click();
+    expect(callService).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
   it("sin panic no sale el botón Pánico", async () => {
