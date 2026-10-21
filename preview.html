@@ -14,19 +14,16 @@
   </style>
 </head>
 <body>
-  <p>Un estado por tarjeta. Toca una para abrir la ventana (las llamadas a servicios salen en la consola, no hacen nada). Mantenla pulsada para ver el histórico (simulado).</p>
+  <p>Un estado por tarjeta. Toca una para abrir la ventana (las llamadas a servicios salen en la consola, no hacen nada). Mantenerla pulsada lanza hass-more-info (sale en la consola).</p>
   <div class="row" id="row"></div>
   <script type="module">
     import "./dist/alarm-status-card.js";
-    const h = (ago, s) => ({ s, lu: Date.now() / 1000 - ago * 60 });
-    const history = [h(3700, "disarmed"), h(3500, "armed_night"), h(3050, "disarmed"), h(2650, "armed_away"), h(2400, "unavailable"),
-      h(2399.99, "disarmed"), h(1700, "armed_away"), h(1500, "disarmed"), h(906, "armed_away"), h(718, "disarmed"), h(21, "unavailable"), h(20.99, "disarmed")];
-    const callWS = async (m) => (console.log("callWS", m), { "alarm_control_panel.alarma_casa": history });
     for (const state of ["disarmed", "armed_away", "armed_night", "arming", "triggered", "unavailable"]) {
       const box = document.createElement("div");
       const c = document.createElement("alarm-status-card");
       c.setConfig({ type: "custom:alarm-status-card", entity: "alarm_control_panel.alarma_casa", panic: "script.alarma_panico" });
-      c.hass = { states: { "alarm_control_panel.alarma_casa": { state, attributes: {} } }, callService: (...a) => console.log("callService", ...a), callWS };
+      c.hass = { states: { "alarm_control_panel.alarma_casa": { state, attributes: {} } }, callService: (...a) => console.log("callService", ...a) };
+      c.addEventListener("hass-more-info", (e) => console.log("hass-more-info", e.detail));
       box.appendChild(c); document.getElementById("row").appendChild(box);
     }
   </script>

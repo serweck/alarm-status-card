@@ -33,15 +33,5 @@ export const styles = css`
   .btns { display: flex; gap: 8px; }
   .btns button { flex: 1; padding: 10px; border-radius: 10px; border: 0; font-weight: 600; }
   .cancel { background: var(--secondary-background-color, #3a3a3a); }
-  .history .box { max-height: min(70vh, 560px); display: flex; flex-direction: column; }
-  .hist { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
-  .hist li { display: grid; grid-template-columns: 22px 1fr auto; grid-template-areas: "i w a" "i f f"; column-gap: 10px; align-items: center;
-             padding: 8px 2px; border-top: 1px solid var(--divider-color, rgba(255, 255, 255, 0.08)); }
-  .hist li:first-child { border-top: 0; }
-  .hist svg { grid-area: i; width: 22px; height: 22px; }
-  .hist .what { grid-area: w; font-weight: 600; font-size: 14px; }
-  .hist .at { grid-area: a; font-size: 13px; color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
-  .hist .for { grid-area: f; font-size: 12px; color: var(--secondary-text-color); }
-  .empty { margin: 8px 0; color: var(--secondary-text-color); }
   .go { background: #e53935; color: #fff !important; }
 `;

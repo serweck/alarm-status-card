@@ -7,19 +7,17 @@ const CONFIG = { type: "custom:alarm-status-card", entity: "alarm_control_panel.
 // Los botones de la ventana no responden el primer medio segundo (anti doble toque): los tests lo saltan con ARM_DELAY_MS = 0.
 async function mount(state = "disarmed", config: Record<string, unknown> = CONFIG, delay = 0) {
   const callService = vi.fn();
-  const callWS = vi.fn(async () => ({ "alarm_control_panel.alarma_casa": [
-    { s: "armed_away", lu: Date.now() / 1000 - 7200 }, { s: "disarmed", lu: Date.now() / 1000 - 600 }] }));
   const card = document.createElement("alarm-status-card") as El;
   card.setConfig(config);
   (card as unknown as { armDelay: number }).armDelay = delay;
-  card.hass = { states: state === "missing" ? {} : { "alarm_control_panel.alarma_casa": { state, attributes: {} } }, callService, callWS };
+  card.hass = { states: state === "missing" ? {} : { "alarm_control_panel.alarma_casa": { state, attributes: {} } }, callService };
   document.body.appendChild(card);
   await card.updateComplete;
   const root = card.shadowRoot!;
   const $ = (s: string) => root.querySelector(s) as HTMLElement | null;
   const $$ = (s: string) => Array.from(root.querySelectorAll(s)) as HTMLElement[];
   const click = async (s: string) => { $(s)!.click(); await card.updateComplete; };
-  return { card, $, $$, click, callService, callWS };
+  return { card, $, $$, click, callService };
 }
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, " ").trim();
 
@@ -146,9 +144,11 @@ describe("tarjeta", () => {
     expect($(".mode.on")).toBeNull();
   });
 
-  it("mantener pulsado abre el histórico y al soltar no se abren los modos", async () => {
+  it("mantener pulsado abre el histórico nativo de HA y al soltar no se abren los modos", async () => {
     vi.useFakeTimers();
-    const { card, $, $$, callWS } = await mount();
+    const { card, $ } = await mount();
+    const moreInfo = vi.fn();
+    card.addEventListener("hass-more-info", (e) => moreInfo((e as CustomEvent).detail));
     const tile = $(".tile")!;
     tile.dispatchEvent(new MouseEvent("pointerdown", { button: 0 }));
     await vi.advanceTimersByTimeAsync(600);
@@ -156,21 +156,15 @@ describe("tarjeta", () => {
     tile.click();
     await card.updateComplete;
     vi.useRealTimers();
-    await new Promise((r) => setTimeout(r));
-    await card.updateComplete;
-    expect(callWS).toHaveBeenCalledWith(expect.objectContaining({ type: "history/history_during_period", entity_ids: ["alarm_control_panel.alarma_casa"] }));
-    expect($(".dialog.history")).not.toBeNull();
-    expect($(".mode")).toBeNull();
-    expect($$(".hist li .what").map((e) => text(e))).toEqual(["Desarmada", "Armada"]);
-    expect(text($(".hist li .for"))).toBe("desde hace 10 min");
-    $(".history .close")!.click();
-    await card.updateComplete;
+    expect(moreInfo).toHaveBeenCalledWith({ entityId: "alarm_control_panel.alarma_casa", view: "history" });
     expect($(".dialog")).toBeNull();
   });
 
-  it("un toque corto no pide el histórico", async () => {
+  it("un toque corto abre los modos y no el histórico", async () => {
     vi.useFakeTimers();
-    const { $, card, callWS } = await mount();
+    const { $, card } = await mount();
+    const moreInfo = vi.fn();
+    card.addEventListener("hass-more-info", moreInfo);
     const tile = $(".tile")!;
     tile.dispatchEvent(new MouseEvent("pointerdown", { button: 0 }));
     await vi.advanceTimersByTimeAsync(100);
@@ -179,8 +173,7 @@ describe("tarjeta", () => {
     await vi.advanceTimersByTimeAsync(1000);
     await card.updateComplete;
     vi.useRealTimers();
-    expect(callWS).not.toHaveBeenCalled();
-    expect($(".dialog.history")).toBeNull();
+    expect(moreInfo).not.toHaveBeenCalled();
     expect($(".mode")).not.toBeNull();
   });
 

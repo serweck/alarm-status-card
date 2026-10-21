@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 · 2026-10-21
+
+- El histórico es el nativo de HA: mantener pulsada la tarjeta abre la ventana de más información en su vista de historial. Fuera la lista propia y `history_days`.
+
 ## 0.2.0 · 2026-10-21
 
 - Mantener pulsada la tarjeta abre el histórico de cambios de estado (últimos `history_days`, 7 por defecto), con cuándo empezó y cuánto duró cada estado. Sin los cortes de «sin conexión» de milisegundos al recargar plantillas.
