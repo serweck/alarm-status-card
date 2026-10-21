@@ -1,19 +1,20 @@
 import { LitElement, html, nothing } from "lit";
 import type { HomeAssistant } from "custom-card-helpers";
+import { duration, historyRows, when, type Change, type RawChange } from "./history";
 import { MODES, stateView, validateConfig } from "./state";
 import { styles } from "./styles";
 import type { CardConfig } from "./types";
 import "./editor";
 
 export const CARD_TAG = "alarm-status-card";
-export const CARD_VERSION = "0.1.3";
+export const CARD_VERSION = "0.2.0";
 
 const shield = (path: string, color: string) =>
   html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d=${path} style=${`fill: ${color}`}></path></svg>`;
 
 export class AlarmStatusCard extends LitElement {
   static styles = styles;
-  static properties = { hass: { attribute: false }, _config: { state: true }, _open: { state: true }, _confirm: { state: true } };
+  static properties = { hass: { attribute: false }, _config: { state: true }, _open: { state: true }, _confirm: { state: true }, _hist: { state: true } };
 
   hass?: HomeAssistant;
   private _config?: CardConfig;
@@ -28,6 +29,13 @@ export class AlarmStatusCard extends LitElement {
   armDelay = 500;
   private _openedAt = 0;
   private _confirmAt = 0;
+  /** Ventana del histórico: undefined cerrada, null cargando, "error" o las filas. */
+  private _hist?: Change[] | null | "error";
+  /** Lo que hay que mantener pulsada la tarjeta para ver el histórico. */
+  holdMs = 500;
+  private _holdTimer?: ReturnType<typeof setTimeout>;
+  /** El histórico se acaba de abrir por mantener pulsado: el click que llega al soltar no abre los modos. */
+  private _held = false;
 
   static getConfigElement(): HTMLElement { return document.createElement(`${CARD_TAG}-editor`); }
   static getStubConfig(): Partial<CardConfig> { return { entity: "", panic: "" }; }
@@ -45,13 +53,41 @@ export class AlarmStatusCard extends LitElement {
   }
   private _close(): void { this._open = false; this._confirm = false; }
 
+  private _down(e: PointerEvent): void {
+    if (e.button !== 0) return;
+    this._held = false;
+    clearTimeout(this._holdTimer);
+    this._holdTimer = setTimeout(() => { this._held = true; this._showHistory(); }, this.holdMs);
+  }
+  private _cancelHold(): void { clearTimeout(this._holdTimer); }
+  private _tap(): void {
+    if (this._held) { this._held = false; return; }
+    this._show();
+  }
+
+  private async _showHistory(): Promise<void> {
+    const c = this._config!;
+    this._hist = null;
+    const now = Date.now();
+    try {
+      const res = await this.hass!.callWS<Record<string, RawChange[]>>({
+        type: "history/history_during_period", entity_ids: [c.entity],
+        start_time: new Date(now - (c.history_days ?? 7) * 86_400_000).toISOString(),
+        minimal_response: true, no_attributes: true, significant_changes_only: false,
+      });
+      if (this._hist === null) this._hist = historyRows(res[c.entity] ?? [], now);
+    } catch {
+      if (this._hist === null) this._hist = "error";
+    }
+  }
+
   /** La ventana es un <dialog> nativo abierto con showModal: va a la capa superior y ninguna tarjeta la tapa. */
   protected updated(): void {
-    const d = this.shadowRoot?.querySelector("dialog");
-    if (d && !d.open) {
+    this.shadowRoot?.querySelectorAll("dialog").forEach((d) => {
+      if (d.open) return;
       if (typeof d.showModal === "function") d.showModal();
       else d.setAttribute("open", "");
-    }
+    });
   }
 
   private _mode(service: string): void {
@@ -74,12 +110,37 @@ export class AlarmStatusCard extends LitElement {
     if (!st) return html`<ha-card><div class="hint">Elige la entidad del panel</div></ha-card>`;
     const v = stateView(st.state, c.colors);
     return html`<ha-card>
-      <div class=${`tile ${v.blink ? "blink" : ""}`} role="button" tabindex="0" @click=${() => this._show()}
+      <div class=${`tile ${v.blink ? "blink" : ""}`} role="button" tabindex="0" title="Mantén pulsado para ver el histórico"
+        @click=${() => this._tap()} @pointerdown=${(e: PointerEvent) => this._down(e)}
+        @pointerup=${() => this._cancelHold()} @pointerleave=${() => this._cancelHold()} @pointercancel=${() => this._cancelHold()}
+        @contextmenu=${(e: Event) => e.preventDefault()}
         @keydown=${(e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && this._show()}>
         ${shield(v.icon, v.color)}<span class="label">${v.label}</span>
       </div>
       ${this._open ? this._dialog(st.state, v.label) : nothing}
+      ${this._hist !== undefined ? this._history() : nothing}
     </ha-card>`;
+  }
+
+  private _history() {
+    const c = this._config!, h = this._hist, now = Date.now();
+    const close = () => { this._hist = undefined; };
+    const body = h === null ? html`<p class="empty">Cargando…</p>`
+      : h === "error" ? html`<p class="empty">No se ha podido leer el histórico.</p>`
+      : !h?.length ? html`<p class="empty">Sin cambios en estos días.</p>`
+      : html`<ol class="hist">${h.map((r) => {
+          const v = stateView(r.state, c.colors);
+          return html`<li>${shield(v.icon, v.color)}<span class="what">${v.label}</span>
+            <span class="at">${when(r.from, now)}</span>
+            <span class="for">${r.to === undefined ? `desde hace ${duration(now - r.from)}` : `durante ${duration(r.to - r.from)}`}</span></li>`;
+        })}</ol>`;
+    return html`<dialog class="dialog history" aria-label="Histórico de la alarma" @close=${close}
+        @click=${(e: Event) => { if (e.target === e.currentTarget) close(); }}><div class="box">
+        <button class="close" aria-label="Cerrar" @click=${close}>✕</button>
+        <h3>Histórico</h3>
+        <div class="now">${c.name ?? "Alarma casa"} · últimos ${c.history_days ?? 7} días</div>
+        ${body}
+      </div></dialog>`;
   }
 
   private _dialog(state: string, label: string) {

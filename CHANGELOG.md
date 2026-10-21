@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 · 2026-10-21
+
+- Mantener pulsada la tarjeta abre el histórico de cambios de estado (últimos `history_days`, 7 por defecto), con cuándo empezó y cuánto duró cada estado. Sin los cortes de «sin conexión» de milisegundos al recargar plantillas.
+
 ## 0.1.3 · 2026-10-17
 
 - Modo noche con la luna (mdi:weather-night), en la tarjeta y en el botón de la ventana.
